@@ -146,10 +146,10 @@ def get_imf_series(country_code, series_type):
         errors="coerce",
     )
 
-    data = data[
-        ["month", "value"]
-    ].dropna()
-
+    # Restrict the dataset to January 1976 onward.
+    data = data.loc[
+        data["month"] >= pd.Timestamp("1976-01-01")
+    ]
     data = data.loc[data["value"] > 0]
 
     # Remove only exact duplicates.
