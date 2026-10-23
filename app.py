@@ -150,10 +150,21 @@ def get_imf_series(country_code, series_type):
         )
 
     # Monthly timestamps and numeric observations.
-    data["month"] = pd.to_datetime(
-        data["TIME_PERIOD"].astype(str).str[:7] + "-01",
-        errors="coerce",
+ periods = (
+    data["TIME_PERIOD"]
+    .astype(str)
+    .str.replace(
+        r"^(\d{4})-M(\d{2})$",
+        r"\1-\2",
+        regex=True,
     )
+)
+
+data["month"] = pd.to_datetime(
+    periods.str[:7] + "-01",
+    errors="coerce",
+)
+    
     data["value"] = pd.to_numeric(
         data["OBS_VALUE"], errors="coerce"
     )
@@ -161,15 +172,20 @@ def get_imf_series(country_code, series_type):
     data = data[["month", "value"]].dropna()
     data = data[data["value"] > 0]
 
-    # Duplicate monthly observations should not be
-    # averaged or invented. Keep only unambiguous dates.
-    if data["month"].duplicated().any():
-        raise ValueError(
-            f"IMF returned duplicate observations for "
-            f"{country_code} ({series_type}). "
-            "Please check the series selection."
-        )
+ # Remove exact duplicate rows, but never average
+# conflicting IMF observations.
+data = data.drop_duplicates(
+    subset=["month", "value"]
+)
 
+conflicts = data[data["month"].duplicated(keep=False)]
+
+if not conflicts.empty:
+    example = conflicts.head(6).to_string(index=False)
+    raise ValueError(
+        f"Conflicting IMF observations for "
+        f"{country_code} ({series_type}).\n{example}"
+    )
     data = data.sort_values("month").set_index("month")
     data.index.name = "Month"
 
