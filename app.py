@@ -300,6 +300,11 @@ with st.spinner("Downloading monthly IMF data..."):
         )
         st.stop()
 
+# Restrict all data to January 1976 onward.
+full_data = full_data.loc[
+    full_data.index >= pd.Timestamp("1976-01-01")
+].copy()
+
 if full_data.empty:
     st.error("No complete monthly observations found.")
     st.stop()
