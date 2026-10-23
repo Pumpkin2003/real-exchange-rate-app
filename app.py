@@ -19,7 +19,6 @@ from plotly.subplots import make_subplots
 BASE_URL = "https://api.imf.org/external/sdmx/3.0"
 START_PERIOD = "1976-01"
 
-# Design colors
 BLACK = "#0D0D10"
 PANEL = "#19171C"
 PINK = "#F4B7D2"
@@ -34,50 +33,52 @@ BORDER = "#353039"
 
 st.set_page_config(
     page_title="The Devil Wears Forex",
+    page_icon="🩷",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 
 # ------------------------------------------------------------
-# BLACK SATIN & BABY PINK THEME
+# BLACK SATIN & BABY PINK DESIGN
 # ------------------------------------------------------------
 
 st.markdown(
     """
     <style>
+    /* Main background */
     .stApp {
         background-color: #0D0D10;
         color: #F9F6F8;
     }
 
+    /* Sidebar */
     [data-testid="stSidebar"] {
         background-color: #171519;
         border-right: 1px solid #353039;
     }
 
-    [data-testid="stSidebar"] * {
-        color: #F3EDF1;
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] p {
+        color: #E7E3E7 !important;
     }
 
+    /* Headings */
     h1, h2, h3 {
         color: #F4B7D2 !important;
-        letter-spacing: -0.5px;
+        letter-spacing: -0.4px;
     }
 
     h1 {
         font-weight: 650 !important;
     }
 
-    p {
-        color: #E7E3E7;
-    }
-
+    /* Metric cards */
     [data-testid="stMetric"] {
         background-color: #19171C;
         border: 1px solid #353039;
-        border-radius: 16px;
         padding: 20px;
+        border-radius: 16px;
     }
 
     [data-testid="stMetricLabel"] {
@@ -89,6 +90,63 @@ st.markdown(
         font-weight: 600;
     }
 
+    /* Closed select boxes */
+    div[data-baseweb="select"] > div {
+        background-color: #242027 !important;
+        border: 1px solid #51414C !important;
+        color: #FFFFFF !important;
+    }
+
+    div[data-baseweb="select"] input,
+    div[data-baseweb="select"] span {
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+    }
+
+    /* Dropdown menu container */
+    div[data-baseweb="popover"],
+    div[data-baseweb="popover"] > div,
+    ul[role="listbox"] {
+        background-color: #242027 !important;
+        color: #FFFFFF !important;
+    }
+
+    /* Dropdown items */
+    li[role="option"],
+    div[role="option"] {
+        background-color: #242027 !important;
+        color: #FFFFFF !important;
+    }
+
+    li[role="option"] *,
+    div[role="option"] * {
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+    }
+
+    /* Hover and selected item */
+    li[role="option"]:hover,
+    li[aria-selected="true"],
+    div[role="option"]:hover,
+    div[role="option"][aria-selected="true"] {
+        background-color: #493542 !important;
+        color: #FFFFFF !important;
+    }
+
+    /* Streamlit popover option rows */
+    [data-baseweb="menu"] {
+        background-color: #242027 !important;
+    }
+
+    [data-baseweb="menu"] li {
+        color: #FFFFFF !important;
+    }
+
+    [data-baseweb="menu"] li:hover {
+        background-color: #493542 !important;
+    }
+
+    /* CSV download button */
     div.stDownloadButton > button {
         background-color: #F4B7D2 !important;
         color: #171017 !important;
@@ -104,30 +162,20 @@ st.markdown(
         color: #171017 !important;
     }
 
+    /* Data table */
     [data-testid="stDataFrame"] {
         border: 1px solid #353039;
         border-radius: 12px;
     }
 
-    div[data-testid="stAlert"] {
-        border-radius: 12px;
-    }
-
-    div[data-testid="stExpander"] {
+    /* Expander */
+    [data-testid="stExpander"] {
         border: 1px solid #353039;
         border-radius: 12px;
         background-color: #19171C;
     }
 
-    div[data-baseweb="select"] > div {
-        background-color: #242027;
-        border-color: #51414C;
-    }
-
-    div[data-baseweb="select"] span {
-        color: #F9F6F8;
-    }
-
+    /* Header label */
     .app-eyebrow {
         font-size: 0.75rem;
         letter-spacing: 2px;
@@ -136,6 +184,7 @@ st.markdown(
         margin-bottom: 10px;
     }
 
+    /* Subtitle */
     .app-subtitle {
         color: #B9B4BB;
         font-size: 1.05rem;
@@ -143,18 +192,20 @@ st.markdown(
         margin-bottom: 25px;
     }
 
+    /* Information boxes */
     .section-note {
         background-color: #19171C;
         border-left: 3px solid #F4B7D2;
         border-radius: 8px;
         padding: 14px 18px;
-        color: #D9D2DA;
+        color: #E7E3E7;
         margin: 12px 0 24px 0;
     }
 
+    /* Footer */
     .app-footer {
         text-align: center;
-        color: #B9B4BB;
+        color: #9F99A2;
         font-size: 0.85rem;
         padding-top: 30px;
         padding-bottom: 10px;
@@ -221,7 +272,7 @@ COUNTRY_LABELS = list(COUNTRIES.keys())
 @st.cache_data(ttl=3600, show_spinner=False)
 def get_imf_series(country_code, series_type):
     """
-    Download monthly IMF data.
+    Download monthly IMF CPI or exchange-rate data.
 
     CPI:
         COUNTRY.CPI._T.IX.M
@@ -229,7 +280,7 @@ def get_imf_series(country_code, series_type):
     Exchange rate:
         COUNTRY.XDC_USD.PA_RT.M
 
-    IMF exchange rates are local currency units per USD.
+    IMF exchange rates are local currency per USD.
     """
 
     if series_type == "CPI":
@@ -290,7 +341,7 @@ def get_imf_series(country_code, series_type):
             f"Columns: {list(data.columns)}"
         )
 
-    # Filter data dimensions if returned by IMF.
+    # Filter returned data dimensions.
 
     filters = {
         "COUNTRY": country_code,
@@ -354,17 +405,19 @@ def get_imf_series(country_code, series_type):
         data["value"] > 0
     ]
 
-    # Restrict all observations to January 1976 onward.
+    # Only use observations from January 1976 onward.
 
     data = data.loc[
         data["month"] >= pd.Timestamp("1976-01-01")
     ]
 
-    # Remove exact duplicates only.
+    # Remove exact duplicate observations.
 
     data = data.drop_duplicates(
         subset=["month", "value"]
     )
+
+    # Report conflicting values instead of averaging them.
 
     conflicts = data.loc[
         data["month"].duplicated(keep=False)
@@ -399,14 +452,15 @@ def get_imf_series(country_code, series_type):
 @st.cache_data(ttl=3600, show_spinner=False)
 def build_dataset(code1, code2):
     """
-    S = currency 2 units per currency 1 unit.
+    S = units of Country 2 currency
+        per one unit of Country 1 currency.
 
-    If x1 = currency 1 units per USD and
-       x2 = currency 2 units per USD,
+    IMF FX:
+        x1 = Currency 1 per USD
+        x2 = Currency 2 per USD
 
-    then S = x2 / x1.
-
-    RER = S * CPI1 / CPI2.
+    S = x2 / x1
+    RER = S * CPI1 / CPI2
     """
 
     if code1 == code2:
@@ -417,7 +471,7 @@ def build_dataset(code1, code2):
     p1 = get_imf_series(code1, "CPI").rename("CPI1")
     p2 = get_imf_series(code2, "CPI").rename("CPI2")
 
-    # USD per USD is always 1.
+    # One USD always equals one USD.
 
     if code1 == "USA":
         x1 = pd.Series(1.0, index=p1.index)
@@ -450,8 +504,7 @@ def build_dataset(code1, code2):
         & (df["FX2_local_per_USD"] > 0)
     ].copy()
 
-    # Nominal exchange rate:
-    # Country 2 currency per Country 1 currency.
+    # Nominal exchange rate in the required direction.
 
     df["S"] = (
         df["FX2_local_per_USD"]
@@ -469,7 +522,7 @@ def build_dataset(code1, code2):
         np.nan,
     ).dropna()
 
-    # Double-check the January 1976 restriction.
+    # Final date restriction.
 
     df = df.loc[
         df.index >= pd.Timestamp("1976-01-01")
@@ -479,13 +532,13 @@ def build_dataset(code1, code2):
 
 
 # ------------------------------------------------------------
-# SIDEBAR CONTROLS
+# SIDEBAR
 # ------------------------------------------------------------
 
-st.sidebar.markdown("## ✦ The Currency Desk")
+st.sidebar.markdown("## The Currency Desk")
 
 st.sidebar.caption(
-    "Choose your currencies and sample period."
+    "Select countries, sample dates, and chart type."
 )
 
 default1 = next(
@@ -529,7 +582,7 @@ if code1 == code2:
 
 
 # ------------------------------------------------------------
-# LOAD DATA
+# LOAD IMF DATA
 # ------------------------------------------------------------
 
 with st.spinner("Fetching IMF data..."):
@@ -544,9 +597,9 @@ with st.spinner("Fetching IMF data..."):
         st.code(str(error))
 
         st.warning(
-            "The IMF data may be unavailable, contain "
-            "conflicting observations, or the API may "
-            "have changed. Please check the error above."
+            "The IMF data may be temporarily unavailable, "
+            "have incomplete coverage, or contain conflicting "
+            "observations."
         )
 
         st.stop()
@@ -559,7 +612,7 @@ if full_data.empty:
 
 
 # ------------------------------------------------------------
-# SAMPLE DATES
+# SAMPLE PERIOD
 # ------------------------------------------------------------
 
 available_months = [
@@ -600,10 +653,10 @@ if selected.empty:
 
 
 # ------------------------------------------------------------
-# BENCHMARK AND REAL INDEX
+# BENCHMARK AND INDEX
 # ------------------------------------------------------------
 
-# Recalculate the benchmark whenever the dates change.
+# Recalculate RER benchmark whenever dates change.
 
 rer_star = selected["RER"].mean()
 
@@ -617,7 +670,7 @@ selected["Real_Index"] = (
 
 
 # ------------------------------------------------------------
-# RESULTS HEADER
+# RESULTS
 # ------------------------------------------------------------
 
 st.subheader("Exchange Rate Comparison")
@@ -628,14 +681,9 @@ st.markdown(
 )
 
 st.caption(
-    "S represents units of Country 2 currency "
+    "S is expressed as units of Country 2 currency "
     "per one unit of Country 1 currency."
 )
-
-
-# ------------------------------------------------------------
-# METRIC CARDS
-# ------------------------------------------------------------
 
 col1, col2, col3 = st.columns(3)
 
@@ -654,11 +702,9 @@ col3.metric(
     f"{selected['Real_Index'].mean():.5f}",
 )
 
-st.markdown("")
-
 
 # ------------------------------------------------------------
-# INTERACTIVE CHART
+# CHART
 # ------------------------------------------------------------
 
 st.subheader("Exchange Rate Trends")
@@ -667,7 +713,7 @@ fig = make_subplots(
     specs=[[{"secondary_y": True}]]
 )
 
-# Real exchange rate: baby pink.
+# Pink line = real exchange rate.
 
 if chart_option in ("Real", "Both"):
     fig.add_trace(
@@ -696,7 +742,7 @@ if chart_option in ("Real", "Both"):
         line_width=1,
     )
 
-# Nominal exchange rate: silver-white.
+# Silver-white line = nominal exchange rate.
 
 if chart_option in ("Nominal", "Both"):
     fig.add_trace(
@@ -731,7 +777,7 @@ fig.update_layout(
     paper_bgcolor=BLACK,
     plot_bgcolor=PANEL,
     font=dict(
-        color="#E7E3E7",
+        color=SILVER,
     ),
     hovermode="x unified",
     height=540,
@@ -749,15 +795,13 @@ fig.update_layout(
 )
 
 fig.update_xaxes(
-    gridcolor="#353039",
-    zerolinecolor="#353039",
+    gridcolor=BORDER,
     showline=True,
     linecolor="#514850",
 )
 
 fig.update_yaxes(
-    gridcolor="#353039",
-    zerolinecolor="#353039",
+    gridcolor=BORDER,
     showline=True,
     linecolor="#514850",
 )
@@ -769,7 +813,7 @@ if chart_option == "Both":
     )
 
     fig.update_yaxes(
-        title_text="Country 2 Currency / Country 1",
+        title_text="Currency 2 per Currency 1",
         secondary_y=True,
         showgrid=False,
     )
@@ -782,7 +826,7 @@ elif chart_option == "Real":
 
 else:
     fig.update_yaxes(
-        title_text="Country 2 Currency / Country 1",
+        title_text="Currency 2 per Currency 1",
         secondary_y=False,
     )
 
@@ -800,7 +844,7 @@ st.caption(
 
 
 # ------------------------------------------------------------
-# ECONOMIC METHODOLOGY
+# METHODOLOGY
 # ------------------------------------------------------------
 
 st.markdown("---")
@@ -808,8 +852,7 @@ st.subheader("Behind the Numbers")
 
 st.write(
     "The real exchange rate adjusts the nominal "
-    "exchange rate for the relative price levels "
-    "of the two countries."
+    "exchange rate for relative consumer price levels."
 )
 
 st.latex(
@@ -826,24 +869,23 @@ st.latex(
 
 st.markdown(
     '<div class="section-note">'
-    'A real index above 100 indicates a real exchange '
-    'rate above its selected-sample average. '
-    'A value below 100 indicates a real exchange '
-    'rate below that average.'
+    'A real index above 100 indicates an RER above '
+    'the selected-sample average. A value below '
+    '100 indicates an RER below that average.'
     '</div>',
     unsafe_allow_html=True,
 )
 
 
 # ------------------------------------------------------------
-# DATA TABLE
+# TABLE AND CSV EXPORT
 # ------------------------------------------------------------
 
 st.subheader("The Data")
 
 st.write(
-    "Explore the monthly observations and calculations "
-    "used in the charts."
+    "Monthly observations and calculations "
+    "for the selected sample period."
 )
 
 export = selected.reset_index()
@@ -874,25 +916,21 @@ st.dataframe(
     hide_index=True,
 )
 
-
-# ------------------------------------------------------------
-# CSV DOWNLOAD
-# ------------------------------------------------------------
-
 csv_data = export.to_csv(
     index=False
 ).encode("utf-8")
 
 st.download_button(
-    label="♡ Download Data as CSV",
+    label="Download Data as CSV",
     data=csv_data,
     file_name=f"rer_{code1}_{code2}.csv",
     mime="text/csv",
 )
 
 st.caption(
-    "The CSV includes all valid observations "
-    "and calculations within the selected sample."
+    "The downloaded CSV contains all valid "
+    "observations and calculations within "
+    "the selected period."
 )
 
 
@@ -902,8 +940,8 @@ st.caption(
 
 with st.expander("Data Sources & Methodology"):
     st.write(
-        "Data source: International Monetary Fund "
-        "(IMF), SDMX 3.0 API."
+        "Source: International Monetary Fund (IMF), "
+        "SDMX 3.0 API."
     )
 
     st.write(
@@ -916,45 +954,42 @@ with st.expander("Data Sources & Methodology"):
     )
 
     st.write(
-        "Monthly observations are requested from "
-        "January 1976 onward, where available."
+        "Monthly data are requested from "
+        "January 1976, where available."
     )
 
     st.write(
-        "The IMF reports exchange rates in local "
+        "IMF exchange rates are quoted in local "
         "currency units per U.S. dollar. "
-        "The app converts these rates to Country 2 "
-        "currency units per one unit of Country 1 "
-        "currency."
+        "The app converts them to units of "
+        "Country 2 currency per unit of "
+        "Country 1 currency."
     )
 
     st.write(
-        "Only complete and valid observations are used. "
-        "Missing observations are not interpolated."
+        "Months with missing or invalid inputs "
+        "are excluded without interpolation."
     )
 
     st.write(
-        "The benchmark is recalculated whenever "
-        "the selected sample dates change."
+        "The RER benchmark changes automatically "
+        "when the sample dates change."
     )
 
     st.write(
-        "The real index is normalized to the sample "
-        "average and does not independently establish "
-        "a currency's fundamental fair value."
+        "The real index is based on the selected "
+        "sample average and does not independently "
+        "establish fundamental fair value."
     )
 
 
 # ------------------------------------------------------------
-# FOOTER
+# SIMPLE FOOTER
 # ------------------------------------------------------------
 
 st.markdown(
     '<div class="app-footer">'
-    'THE DEVIL WEARS FOREX ✦ '
-    'Real data. Real exchange rates.'
+    'International Finance · IMF Data'
     '</div>',
     unsafe_allow_html=True,
 )
-         
-    
